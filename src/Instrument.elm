@@ -1,4 +1,4 @@
-module Instrument exposing (Instrument, InstrumentId(..), decoder, decoderSample, toString)
+module Instrument exposing (Instrument, InstrumentId(..), Sample, decoder, decoderSample, empty, toString)
 
 import Bytes
 import Bytes.Decode as Bytes
@@ -11,21 +11,13 @@ type InstrumentId
 
 
 type alias Instrument =
-    { name : String
-    , type_ : String
-    , sample : Sample
-    , id : InstrumentId
-    }
-
-
-type alias Sample =
-    { name : String
+    { id : InstrumentId
+    , name : String
     , length : Int
     , finetune : Int
     , finetuneX : Int
     , volume : Int
     , loop : Loop
-    , data : List Float
     }
 
 
@@ -35,6 +27,17 @@ type alias Loop =
     , length : Int
     , type_ : Int
     }
+
+
+type alias Sample =
+    { id : InstrumentId
+    , data : List Float
+    }
+
+
+empty : Instrument
+empty =
+    Instrument (InstrumentId 0) "empty" 0 0 0 0 (Loop False 0 0 0)
 
 
 toString : Maybe InstrumentId -> String
@@ -117,27 +120,7 @@ finetuneX ft =
         ft
 
 
-decodeSample : Bytes.Decoder Sample
-decodeSample =
-    let
-        fineTuneXInitial =
-            0
-    in
-    Pipeline.decode Sample
-        |> Pipeline.hardcoded ""
-        |> Pipeline.required decoderLength
-        |> Pipeline.required decoderFinetune
-        |> Pipeline.hardcoded fineTuneXInitial
-        |> Pipeline.required decoderVolume
-        |> Pipeline.required decoderLoop
-        |> Pipeline.hardcoded []
-        |> Bytes.andThen
-            (\sample ->
-                Bytes.succeed { sample | finetuneX = finetuneX sample.finetune }
-            )
-
-
-decoderSample : Instrument -> Bytes.Decoder Instrument
+decoderSample : Instrument -> Bytes.Decoder Sample
 decoderSample instrument =
     let
         ignoreFirstTwoBytes =
@@ -153,26 +136,30 @@ decoderSample instrument =
     Pipeline.decode
         (ignoreFirstTwoBytes >> List.map (\x -> x / 127))
         |> Pipeline.required
-            (Pipeline.list instrument.sample.length Bytes.signedInt8
+            (Pipeline.list instrument.length Bytes.signedInt8
                 |> Bytes.map (List.reverse >> List.map toFloat)
             )
         |> Bytes.andThen
             (\data ->
-                let
-                    sample =
-                        instrument.sample
-
-                    newSample =
-                        { sample | data = data }
-                in
-                Bytes.succeed { instrument | sample = newSample }
+                Bytes.succeed (Sample instrument.id data)
             )
 
 
 decoder : Int -> Bytes.Decoder Instrument
 decoder index =
+    let
+        fineTuneXInitial =
+            0
+    in
     Pipeline.decode Instrument
+        |> Pipeline.hardcoded (InstrumentId <| index + 1)
         |> Pipeline.required decoderName
-        |> Pipeline.hardcoded "sample"
-        |> Pipeline.required decodeSample
-        |> Pipeline.hardcoded (InstrumentId index)
+        |> Pipeline.required decoderLength
+        |> Pipeline.required decoderFinetune
+        |> Pipeline.hardcoded fineTuneXInitial
+        |> Pipeline.required decoderVolume
+        |> Pipeline.required decoderLoop
+        |> Bytes.andThen
+            (\instrument ->
+                Bytes.succeed { instrument | finetuneX = finetuneX instrument.finetune }
+            )

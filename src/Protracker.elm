@@ -1,8 +1,8 @@
-module Protracker exposing (Pattern, Protracker, decoder, getPatternByIndex, getRealPatternByIndex, getRowByIndex)
+module Protracker exposing (Pattern, PatternTable, ProTracker, Row, decoder, getPatternByIndex, getRealPatternByIndex, getRowByIndex)
 
 import Array exposing (Array)
 import Bytes.Decode as Bytes
-import Instrument exposing (Instrument)
+import Instrument exposing (Instrument, Sample)
 import Note exposing (Note)
 import Pipeline
 
@@ -15,18 +15,23 @@ type alias Pattern =
     List Row
 
 
-type alias Protracker =
+type alias PatternTable =
+    Array Int
+
+
+type alias ProTracker =
     { title : String
     , instruments : List Instrument
+    , samples : List Sample
     , length : Int -- Number of song positions (ie. number of patterns played throughout the song). Legal values are 1..128.
     , patternTableLength : Int -- Historically set to 127, but can be safely ignored. Noisetracker uses this byte to indicate restart position - this has been made redundant by the 'Position Jump' effect.
-    , patternTable : Array Int
+    , patternTable : PatternTable
     , signature : String
     , patterns : List Pattern
     }
 
 
-getRealPatternByIndex : Int -> Protracker -> Maybe Pattern
+getRealPatternByIndex : Int -> ProTracker -> Maybe Pattern
 getRealPatternByIndex index mod =
     let
         patternNumber =
@@ -36,21 +41,21 @@ getRealPatternByIndex index mod =
 
 
 getPatternByIndex : Int -> List Pattern -> Maybe Pattern
-getPatternByIndex i patterns =
-    let
-        patternsArray =
-            patterns |> Array.fromList
-    in
-    Array.get i patternsArray
+getPatternByIndex idx patterns =
+    if idx < 0 then
+        Nothing
+
+    else
+        List.head <| List.drop idx patterns
 
 
 getRowByIndex : Int -> Pattern -> Maybe Row
-getRowByIndex i pattern =
-    let
-        rowsArray =
-            pattern |> Array.fromList
-    in
-    Array.get i rowsArray
+getRowByIndex idx pattern =
+    if idx < 0 then
+        Nothing
+
+    else
+        List.head <| List.drop idx pattern
 
 
 
@@ -141,7 +146,7 @@ decoderDivision channels =
     Pipeline.list 64 (decoderRow channels) |> Bytes.map List.reverse
 
 
-decoderPatterns : Protracker -> Bytes.Decoder Protracker
+decoderPatterns : ProTracker -> Bytes.Decoder ProTracker
 decoderPatterns song =
     let
         channels =
@@ -165,20 +170,27 @@ decoderPatterns song =
             )
 
 
-decoderSamples : Protracker -> Bytes.Decoder Protracker
+decoderSamples : ProTracker -> Bytes.Decoder ProTracker
 decoderSamples song =
     Pipeline.listCustom song.instruments Instrument.decoderSample
         |> Bytes.andThen
-            (\instruments ->
-                Bytes.succeed { song | instruments = instruments |> List.reverse }
+            (\samples ->
+                Bytes.succeed { song | samples = samples |> List.reverse }
             )
 
 
-decoder : Bytes.Decoder Protracker
+decoderInstruments : Bytes.Decoder (List Instrument)
+decoderInstruments =
+    Pipeline.listCustom (List.range 0 30) Instrument.decoder
+        |> Bytes.map List.reverse
+
+
+decoder : Bytes.Decoder ProTracker
 decoder =
-    Pipeline.decode Protracker
+    Pipeline.decode ProTracker
         |> Pipeline.required decoderTitle
-        |> Pipeline.required (Pipeline.listCustom (List.range 0 30) Instrument.decoder |> Bytes.map List.reverse)
+        |> Pipeline.required decoderInstruments
+        |> Pipeline.hardcoded []
         |> Pipeline.required Bytes.unsignedInt8
         |> Pipeline.required Bytes.unsignedInt8
         |> Pipeline.required (decoderPatternTable 128)

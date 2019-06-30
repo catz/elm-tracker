@@ -17,9 +17,25 @@ body {
 }
 
 
-select {
+select#pattern-table {
     width: 100px;
+    margin-right: 20px;
 }
+
+select#songs {
+    width: 200px;
+    margin-right: 20px;
+}
+
+select#instruments{
+    width: 300px;
+    margin-left: 10px;
+}
+
+button {
+    margin-right: 10px;
+}
+
 .pattern-table span {
     width: 33px;
     display: inline-block;
@@ -40,6 +56,14 @@ tr.active {
 
 .patterns {
     border-collapse: collapse;
+}
+
+.patterns .position {
+    width: 35px;
+}
+
+.patterns .position span.highlighted {
+    color: orange;
 }
 
 .patterns tbody {
@@ -142,3 +166,6 @@ tr.active {
 #piano ul li:last-child {
   border-radius:0 5px 5px 5px
 }
+
+
+

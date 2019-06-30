@@ -1,53 +1,18 @@
-module Note exposing (Note, decoder, toStrings)
+module Note exposing (Note, decoder)
 
 import Bitwise
 import Bytes exposing (Endianness(..))
 import Bytes.Decode as Bytes
-import Dict
+import Effect exposing (Effect)
 import Instrument exposing (InstrumentId(..))
-import NoteName
-import Noteperiod
-import Util
 
 
 type alias Note =
-    { effect : Int
+    { effect : Effect
     , instrumentId : Maybe InstrumentId
-    , param : Int
-    , period : Int
+    , period : Maybe Int
     , time : Float
     }
-
-
-toStrings : Note -> { noteString : String, instrumentString : String, effectString : String }
-toStrings note =
-    let
-        noteString =
-            Dict.get note.period Noteperiod.periodTable
-                |> Maybe.map (.name >> NoteName.toString)
-                |> Maybe.withDefault "---"
-
-        instrumentString =
-            Instrument.toString note.instrumentId
-
-        effectString =
-            if note.effect > 15 then
-                Util.formatHexExtended note.effect 1 ' '
-
-            else if note.effect == 0 then
-                "."
-
-            else
-                Util.formatHex note.effect 1 ' '
-
-        paramString =
-            if note.effect > 0 then
-                Util.formatHex note.param 2 '0'
-
-            else
-                ".."
-    in
-    { noteString = noteString, instrumentString = instrumentString, effectString = effectString ++ paramString }
 
 
 
@@ -76,8 +41,15 @@ decoder =
                         else
                             Just (InstrumentId instrumentIdNumber)
 
+                    periodValue =
+                        if period == 0 then
+                            Nothing
+
+                        else
+                            Just period
+
                     param =
                         Bitwise.and trackStepInfo 0xFF
                 in
-                Bytes.succeed (Note effect instrumentId param period 0)
+                Bytes.succeed (Note (Effect.create effect param) instrumentId periodValue 0)
             )

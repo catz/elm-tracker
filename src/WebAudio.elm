@@ -35,6 +35,7 @@ module WebAudio exposing
     , serial__
     , delay
     , Node_(..)
+    , BiquadFilterType(..)
     )
 
 {-| elm-webaudio provides methods to play audio in Elm.
@@ -304,6 +305,10 @@ type alias BufferSourceProps =
     , stopTime : Maybe Time
     , detune : Int
     , playbackRate : Float
+    , loop : Bool
+    , loopStart : Float
+    , loopEnd : Float
+    , offsetTime : Maybe Time
     }
 
 
@@ -644,6 +649,10 @@ encodeGraphEntry nodep =
                 , ( "stopTime", Maybe.withDefault null <| Maybe.map audioTime node.stopTime )
                 , ( "detune", int node.detune )
                 , ( "playbackRate", float node.playbackRate )
+                , ( "loop", bool node.loop )
+                , ( "loopStart", float node.loopStart )
+                , ( "loopEnd", float node.loopEnd )
+                , ( "offsetTime", Maybe.withDefault null <| Maybe.map audioTime node.offsetTime )
                 ]
 
         BiquadFilter node ->
@@ -653,7 +662,7 @@ encodeGraphEntry nodep =
                 , ( "type_", encodeBiquadFilterType node.type_ )
                 , ( "frequency", encodeAudioParam node.frequency )
                 , ( "detune", encodeAudioParam node.detune )
-                , ( "q", encodeAudioParam node.q )
+                , ( "Q", encodeAudioParam node.q )
                 ]
 
         ChannelMerger ->

@@ -1,4 +1,4 @@
-module Noteperiod exposing (NotePeriodTable, Noteperiod, getSampleRateForPeriod, list, periodTable)
+module Noteperiod exposing (NotePeriodTable, Noteperiod, getFineTuneForPeriod, getSampleRateForPeriod, list, periodTable)
 
 import Dict exposing (Dict)
 import NoteName exposing (NoteName(..), Octave(..))
@@ -58,11 +58,28 @@ type alias NotePeriodTable =
 
 periodTable : NotePeriodTable
 periodTable =
-    let
-        x =
-            Debug.log "calc" "calc"
-    in
     list |> List.map (\v -> ( v.period, v )) |> Dict.fromList
+
+
+getFineTuneForPeriod : Int -> Int -> Int
+getFineTuneForPeriod period finetune =
+    Dict.get period periodTable
+        |> Maybe.map
+            (\noteperiod ->
+                let
+                    centerTune =
+                        8
+
+                    tune =
+                        centerTune + finetune
+                in
+                if tune >= 0 then
+                    noteperiod.tune |> List.drop 4 |> List.head |> Maybe.withDefault period
+
+                else
+                    period
+            )
+        |> Maybe.withDefault period
 
 
 

@@ -3,16 +3,9 @@ import { Elm } from './Main.elm';
 import registerServiceWorker from './registerServiceWorker';
 import './elm-webaudio'
 
-import createVirtualAudioGraph, {
-  createNode,
-  createWorkletNode,
-  delay,
-  gain,
-  oscillator,
-  stereoPanner,
-  bufferSource,
-} from 'virtual-audio-graph';
+import * as ElmDebugger from 'elm-debug-transformer';
 
+ElmDebugger.register();
 
 window.AudioContext = window.AudioContext || window.webkitAudioContext;
 if (typeof window.AudioContext === 'undefined') {
@@ -24,30 +17,3 @@ const app = Elm.Main.init({
 });
 
 registerServiceWorker();
-
-const audioContext = new AudioContext();
-const virtualAudioGraph = createVirtualAudioGraph({
-  audioContext: audioContext,
-  output: audioContext.destination
-});
-
-const { currentTime } = virtualAudioGraph;
-
-
-
-//app.ports.renderSample.subscribe(function(sample) {
-//  var sampleBuffer = audioContext.createBuffer(1, sample.length, audioContext.sampleRate);
-//
-//    var buffering = sampleBuffer.getChannelData(0);
-//    for(var i=0; i < sample.length; i++) {
-//      buffering[i] = sample[i];
-//    }
-//
-//    var source = audioContext.createBufferSource();
-//    source.buffer = sampleBuffer;
-//
-//    console.log(sampleBuffer)
-//
-//    source.connect(audioContext.destination);
-//    source.start(audioContext.currentTime, 0);
-//});

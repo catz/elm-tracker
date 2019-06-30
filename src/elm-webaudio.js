@@ -60,6 +60,7 @@ customElements.define(
             const audioContext = this.virtualAudioGraph.audioContext;
 
             if(this.samplesLoaded) {
+                this.progress();
                 return;
             }
 
@@ -74,7 +75,7 @@ customElements.define(
                     this.audioBufferMap.set(sample.url, sampleBuffer);
                 }
             }
-            console.log('samples loading done');
+
             this.samplesLoaded = true;
         }
 
@@ -82,6 +83,7 @@ customElements.define(
             if(!this.samplesLoaded) {
                 return;
             }
+
             this.prepareAudioGraph();
             this.decodeBuffers();
             this.audioGraphJson = value;
@@ -95,7 +97,7 @@ customElements.define(
             this.decodeBuffers();
             if (this.virtualAudioGraph) {
                 for (let url of value) {
-//                    this.getAudioBuffer(url);
+                    this.getAudioBuffer(url);
                 }
             }
         }
@@ -132,8 +134,12 @@ customElements.define(
                                 buffer: audioBuffer,
                                 startTime: props.startTime,
                                 stopTime: props.stopTime,
-                                detune: props.detune,
-                                playbackRate: props.playbackRate
+                                // detune: props.detune, // doesn't work in safari - https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode/detune
+                                playbackRate: props.playbackRate,
+                                loop: props.loop,
+                                loopStart: props.loopStart,
+                                loopEnd: props.loopEnd,
+                                offsetTime: props.offsetTime
                             });
                         } else {
                             vgraph[key] = gain(props.output, {});
@@ -204,7 +210,13 @@ customElements.define(
                         });
                         break;
                     case "StereoPanner":
-                        vgraph[key] = stereoPanner(props.output, { pan: props.pan })
+                        const audioContext = this.virtualAudioGraph.audioContext;
+                        if(audioContext.createStereoPanner) {
+                          vgraph[key] = stereoPanner(props.output, { pan: props.pan })
+                        } else {
+                          vgraph[key] = gain(props.output, { gain: 1 });
+                        }
+
                         break;
                     case "WaveShaper":
                         vgraph[key] = waveShaper(props.output, {

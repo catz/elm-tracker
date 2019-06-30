@@ -5,7 +5,12 @@
   "dependencies": {
     "elm": "^0.19.0-bugfix6",
     "elm-upgrade": "^0.19.6",
-    "virtual-audio-graph": "1.1.4"
+    "virtual-audio-graph": "1.1.5"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "elm-debug-transformer": "^0.0.7"
+  },
+  "scripts": {
+    "build": "elm-app build"
+  }
 }
