@@ -18,6 +18,15 @@ import {
     waveShaper
 } from 'virtual-audio-graph';
 
+function unlockAudioContext(audioCtx) {
+  if (audioCtx.state !== 'suspended') return;
+  const b = document.body;
+  const events = ['touchstart','touchend', 'mousedown','keydown'];
+  events.forEach(e => b.addEventListener(e, unlock, false));
+  function unlock() { audioCtx.resume().then(clean); }
+  function clean() { events.forEach(e => b.removeEventListener(e, unlock)); }
+}
+
 customElements.define(
     "elm-webaudio",
     class extends HTMLElement {
@@ -45,10 +54,15 @@ customElements.define(
             this.decodeBuffers();
         }
 
+
+
         prepareAudioGraph() {
             if (!this.virtualAudioGraph) {
                 try {
-                    this.virtualAudioGraph = createVirtualAudioGraph();
+                    const AudioContext = window.AudioContext || window.webkitAudioContext
+                    const audioContext = new AudioContext();
+                    unlockAudioContext(audioContext);
+                    this.virtualAudioGraph = createVirtualAudioGraph({ audioContext });
                     this.decodeBuffers()
                 } catch {
                     // ignore
